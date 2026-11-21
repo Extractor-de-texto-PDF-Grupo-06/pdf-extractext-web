@@ -2,7 +2,7 @@
 
 from dataclasses import asdict
 
-from app.application.entities import Extraction, NewDocument, WebConfig
+from app.application.entities import Extraction, NewDocument, ProxiedResponse, WebConfig
 from app.application.errors import DuplicateDocument
 
 DEFAULT_CONFIG = WebConfig(
@@ -60,3 +60,28 @@ class FixedConfig:
 
     async def get(self) -> WebConfig:
         return self.config
+
+
+class FakeDocumentsProxy:
+    """Responde ``answer`` a cualquier pedido reenviado; anota cada uno."""
+
+    def __init__(self) -> None:
+        self.answer = ProxiedResponse(200, b'{"data": []}', "application/json")
+        self.error: Exception | None = None
+        self.requests: list[tuple[str, str, dict, bytes | None]] = []
+
+    async def forward(
+        self, method: str, path: str, query: dict[str, str], body: bytes | None
+    ) -> ProxiedResponse:
+        self.requests.append((method, path, query, body))
+        if self.error is not None:
+            raise self.error
+        return self.answer
+
+
+class FakeHealth:
+    def __init__(self, services: dict[str, bool] | None = None) -> None:
+        self.services = services or {"documents": True, "extractor": True, "config": True}
+
+    async def check(self) -> dict[str, bool]:
+        return self.services

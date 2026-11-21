@@ -15,6 +15,7 @@ from app.application.errors import (
 )
 from app.infrastructure.http_documents import HttpDocuments
 from app.infrastructure.http_extractor import HttpExtractor
+from app.infrastructure.http_health import HttpHealth
 
 pytestmark = pytest.mark.anyio
 
@@ -184,3 +185,64 @@ async def test_sin_conexion_documents_esta_caido():
     async with client_answering(failing_with(httpx.ConnectError)) as client:
         with pytest.raises(DocumentsUnavailable):
             await HttpDocuments(client, "http://documents").find_by_checksum("ab" * 32)
+
+
+# ── Reenvío a documents y estado de los servicios ────────────────────
+
+
+async def test_el_reenvio_arma_la_url_y_devuelve_la_respuesta_tal_cual():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["request"] = (request.method, str(request.url), request.content)
+        return httpx.Response(404, json={"detail": "Documento no encontrado."})
+
+    async with client_answering(handler) as client:
+        answer = await HttpDocuments(client, "http://documents:8000/").forward(
+            "PUT", "/doc-1", {}, b'{"text": "nuevo"}'
+        )
+
+    assert seen["request"] == ("PUT", "http://documents:8000/doc-1", b'{"text": "nuevo"}')
+    assert answer.status_code == 404
+    assert json.loads(answer.body) == {"detail": "Documento no encontrado."}
+    assert answer.content_type == "application/json"
+
+
+async def test_el_reenvio_pasa_los_parametros_de_la_consulta():
+    seen = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen["url"] = str(request.url)
+        return httpx.Response(200, json={"data": []})
+
+    async with client_answering(handler) as client:
+        await HttpDocuments(client, "http://documents").forward("GET", "/", {"skip": "5"}, None)
+
+    assert seen["url"] == "http://documents/?skip=5"
+
+
+async def test_si_documents_no_responde_el_reenvio_falla():
+    async with client_answering(failing_with(httpx.ConnectError)) as client:
+        with pytest.raises(DocumentsUnavailable):
+            await HttpDocuments(client, "http://documents").forward("GET", "/", {}, None)
+
+
+async def test_el_estado_de_los_servicios_sale_de_su_health():
+    answers = {"documents": 200, "extractor": 503, "config": 200}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/health")
+        return httpx.Response(answers[request.url.host])
+
+    async with client_answering(handler) as client:
+        health = HttpHealth(
+            client,
+            {"documents": "http://documents", "extractor": "http://extractor/", "config": "http://config"},
+        )
+
+        assert await health.check() == {"documents": True, "extractor": False, "config": True}
+
+
+async def test_un_servicio_que_no_contesta_esta_caido():
+    async with client_answering(failing_with(httpx.ConnectError)) as client:
+        assert await HttpHealth(client, {"config": "http://config"}).check() == {"config": False}

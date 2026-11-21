@@ -12,7 +12,7 @@ from app.application.errors import DocumentsUnavailable, ExtractorUnavailable, I
 from app.application.use_cases import UploadDocument
 from app.main import create_app
 from app.presentation.state import Services
-from tests.fakes import FakeDocuments, FakeExtractor, FixedConfig
+from tests.fakes import FakeDocuments, FakeDocumentsProxy, FakeExtractor, FakeHealth, FixedConfig
 
 PDF = b"%PDF-1.4 hola"
 PDF_CHECKSUM = "bc39ce0612bcde4063a33a16c57c873efbc5c908b15a747c801cb4bc0813688f"
@@ -36,7 +36,8 @@ def config():
 @pytest.fixture
 def client(extractor, documents, config):
     upload = UploadDocument(extractor, documents, config, CircuitBreaker("extractor"))
-    app = create_app(lambda: nullcontext(Services(upload=upload)))
+    services = Services(upload=upload, documents=FakeDocumentsProxy(), health=FakeHealth())
+    app = create_app(lambda: nullcontext(services))
     with TestClient(app) as client:
         yield client
 
