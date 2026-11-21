@@ -119,3 +119,34 @@ def test_results_of_calls_started_before_opening_do_not_change_an_open_circuit()
 def test_rejects_invalid_configuration(threshold, recovery):
     with pytest.raises(ValueError):
         CircuitBreaker("extractor", failure_threshold=threshold, recovery_timeout=recovery)
+
+
+def test_configure_changes_the_threshold_for_the_next_failures():
+    clock = FakeClock()
+    breaker = _breaker(clock, threshold=5)
+    _fail(breaker, 2)
+
+    breaker.configure(failure_threshold=3, recovery_timeout=30.0)
+    _fail(breaker, 1)
+
+    assert breaker.state is CircuitState.OPEN
+
+
+def test_configure_changes_the_recovery_timeout():
+    clock = FakeClock()
+    breaker = _breaker(clock, threshold=1, recovery=30.0)
+    breaker.configure(failure_threshold=1, recovery_timeout=10.0)
+    _fail(breaker, 1)
+
+    with pytest.raises(CircuitOpenError) as error:
+        breaker.before_call()
+
+    assert error.value.retry_after == 10.0
+
+
+@pytest.mark.parametrize("threshold,recovery", [(0, 30.0), (3, 0.0)])
+def test_configure_rejects_invalid_values(threshold, recovery):
+    breaker = _breaker(FakeClock())
+
+    with pytest.raises(ValueError):
+        breaker.configure(failure_threshold=threshold, recovery_timeout=recovery)
