@@ -35,6 +35,15 @@ class NewDocument:
 
 
 @dataclass(frozen=True)
+class ProxiedResponse:
+    """La respuesta de documents a un pedido reenviado, tal como llegó."""
+
+    status_code: int
+    body: bytes
+    content_type: str
+
+
+@dataclass(frozen=True)
 class WebConfig:
     """Los valores de web que pueden cambiar en caliente desde la configuración centralizada."""
 

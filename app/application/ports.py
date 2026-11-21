@@ -2,7 +2,7 @@
 
 from typing import Any, Protocol
 
-from app.application.entities import Extraction, NewDocument, WebConfig
+from app.application.entities import Extraction, NewDocument, ProxiedResponse, WebConfig
 
 
 class Extractor(Protocol):
@@ -19,6 +19,21 @@ class DocumentStore(Protocol):
 
     async def create(self, document: NewDocument) -> dict[str, Any]:
         """Devuelve el documento guardado. Lanza ``DuplicateDocument`` si el checksum ya existe."""
+        ...
+
+
+class DocumentsProxy(Protocol):
+    async def forward(
+        self, method: str, path: str, query: dict[str, str], body: bytes | None
+    ) -> ProxiedResponse:
+        """Reenvía el pedido del CRUD a documents y devuelve su respuesta sin cambios.
+        Lanza ``DocumentsUnavailable`` si documents no responde."""
+        ...
+
+
+class DependencyHealth(Protocol):
+    async def check(self) -> dict[str, bool]:
+        """Si cada servicio del que depende web responde a su ``/health``."""
         ...
 
 

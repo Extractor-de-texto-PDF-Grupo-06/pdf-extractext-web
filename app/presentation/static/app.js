@@ -1,4 +1,4 @@
-const API_URL = '/api/v1';
+const API_URL = '/api';
 
 // DOM Elements
 const navItems = document.querySelectorAll('.nav-item');
@@ -113,7 +113,7 @@ async function uploadFile(file) {
     formData.append('file', file);
 
     try {
-        const response = await fetch(`${API_URL}/extract`, {
+        const response = await fetch(`${API_URL}/documents`, {
             method: 'POST',
             body: formData
         });

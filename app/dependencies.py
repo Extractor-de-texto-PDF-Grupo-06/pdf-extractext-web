@@ -12,6 +12,7 @@ from app.core.settings import Settings
 from app.infrastructure.http_config import HttpConfigSource
 from app.infrastructure.http_documents import HttpDocuments
 from app.infrastructure.http_extractor import HttpExtractor
+from app.infrastructure.http_health import HttpHealth
 from app.presentation.state import Services
 
 
@@ -45,10 +46,16 @@ async def http_services(settings: Settings) -> AsyncIterator[Services]:
             failure_threshold=fallback.circuit_breaker_failure_threshold,
             recovery_timeout=fallback.circuit_breaker_recovery_seconds,
         )
+        documents = HttpDocuments(client, settings.documents_url)
         upload = UploadDocument(
-            HttpExtractor(client, settings.extractor_url),
-            HttpDocuments(client, settings.documents_url),
-            config,
-            breaker,
+            HttpExtractor(client, settings.extractor_url), documents, config, breaker
         )
-        yield Services(upload=upload)
+        health = HttpHealth(
+            client,
+            {
+                "documents": settings.documents_url,
+                "extractor": settings.extractor_url,
+                "config": settings.config_url,
+            },
+        )
+        yield Services(upload=upload, documents=documents, health=health)

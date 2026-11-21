@@ -1,4 +1,5 @@
-"""Adaptador del puerto DocumentStore: llama a documents por la red interna de Docker."""
+"""Adaptador de los puertos DocumentStore y DocumentsProxy: llama a documents por la red
+interna de Docker."""
 
 import logging
 from dataclasses import asdict
@@ -6,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from app.application.entities import NewDocument
+from app.application.entities import NewDocument, ProxiedResponse
 from app.application.errors import DocumentsUnavailable, DuplicateDocument
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,17 @@ class HttpDocuments:
         if response.status_code != 201:
             raise _unavailable(response)
         return response.json()
+
+    async def forward(
+        self, method: str, path: str, query: dict[str, str], body: bytes | None
+    ) -> ProxiedResponse:
+        headers = {"Content-Type": "application/json"} if body is not None else None
+        response = await self._send(method, path, params=query, content=body, headers=headers)
+        return ProxiedResponse(
+            status_code=response.status_code,
+            body=response.content,
+            content_type=response.headers.get("content-type", ""),
+        )
 
     async def _send(self, method: str, path: str, **options: Any) -> httpx.Response:
         try:

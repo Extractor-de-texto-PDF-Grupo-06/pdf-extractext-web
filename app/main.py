@@ -3,8 +3,11 @@
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from app.core.settings import Settings
 from app.dependencies import http_services
@@ -13,6 +16,8 @@ from app.presentation.routes import router
 from app.presentation.state import Services
 
 ServicesFactory = Callable[[], AbstractAsyncContextManager[Services]]
+
+STATIC_DIR = Path(__file__).resolve().parent / "presentation" / "static"
 
 
 def create_app(services_factory: ServicesFactory) -> FastAPI:
@@ -27,6 +32,8 @@ def create_app(services_factory: ServicesFactory) -> FastAPI:
     app = FastAPI(title="pdf-extractext-web", lifespan=lifespan)
     app.include_router(router)
     add_error_handlers(app)
+    # Al final: las rutas de arriba ganan, y todo lo demás es la interfaz (GET / es index.html).
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="interfaz")
     return app
 
 
