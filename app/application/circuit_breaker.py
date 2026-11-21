@@ -55,13 +55,8 @@ class CircuitBreaker:
         recovery_timeout: float = 30.0,
         clock: Callable[[], float] = time.monotonic,
     ):
-        if failure_threshold < 1:
-            raise ValueError("failure_threshold debe ser al menos 1.")
-        if recovery_timeout <= 0:
-            raise ValueError("recovery_timeout debe ser mayor que 0.")
         self.name = name
-        self._threshold = failure_threshold
-        self._recovery = recovery_timeout
+        self.configure(failure_threshold, recovery_timeout)
         self._clock = clock
         self._state = CircuitState.CLOSED
         self._failures = 0
@@ -71,6 +66,15 @@ class CircuitBreaker:
     @property
     def state(self) -> CircuitState:
         return self._state
+
+    def configure(self, failure_threshold: int, recovery_timeout: float) -> None:
+        """Cambia los parámetros sin perder el estado: la configuración puede cambiar en caliente."""
+        if failure_threshold < 1:
+            raise ValueError("failure_threshold debe ser al menos 1.")
+        if recovery_timeout <= 0:
+            raise ValueError("recovery_timeout debe ser mayor que 0.")
+        self._threshold = failure_threshold
+        self._recovery = recovery_timeout
 
     def before_call(self) -> None:
         """Deja pasar la llamada o lanza ``CircuitOpenError``."""
