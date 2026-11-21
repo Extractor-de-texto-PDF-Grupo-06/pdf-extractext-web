@@ -1,7 +1,7 @@
 """Circuit breaker: estados, transiciones y reloj inyectado (sin dormir)."""
 import pytest
 
-from app.services.resilience import CircuitBreaker, CircuitOpenError, CircuitState
+from app.application.circuit_breaker import CircuitBreaker, CircuitOpenError, CircuitState
 
 
 class FakeClock:
