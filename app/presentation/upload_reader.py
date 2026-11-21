@@ -90,8 +90,10 @@ class _FilePart:
         _, disposition = parse_options_header(self._headers.get(b"content-disposition", b""))
         if self.found or disposition.get(b"name") != _FIELD or b"filename" not in disposition:
             return
+        # Se marca al empezar, no al terminar: si supera el límite, se deja de leer antes del final.
         self._capturing = True
-        self.filename = _basename(disposition[b"filename"].decode("utf-8", errors="replace"))
+        self.found = True
+        self.filename =_basename(disposition[b"filename"].decode("utf-8", errors="replace"))
         self.content_type = self._headers.get(b"content-type", b"").decode("latin-1").strip()
 
     def _on_part_data(self, data: bytes, start: int, end: int) -> None:
@@ -99,9 +101,7 @@ class _FilePart:
             self.data += data[start:min(end, start + self._limit - len(self.data))]
 
     def _on_part_end(self) -> None:
-        if self._capturing:
-            self._capturing = False
-            self.found = True
+        self._capturing = False
 
 
 def _basename(filename: str) -> str:
