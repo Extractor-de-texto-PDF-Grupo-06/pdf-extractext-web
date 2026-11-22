@@ -44,6 +44,7 @@ jobs:
           vuln-type: os,library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+          version: v0.76.2
           exit-code: '1'
 
   # Construye la imagen en cada PR y push, así un Dockerfile roto se ve antes de fusionar.
