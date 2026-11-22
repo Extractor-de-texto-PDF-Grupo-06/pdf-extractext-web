@@ -1,0 +1,3 @@
+# Finales de línea LF en todo el texto, aunque se clone en Windows:
+# los scripts corren en contenedores Linux.
+* text=auto eol=lf
