@@ -3,36 +3,47 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [develop, main]
+    branches: [main, develop]
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  test:
+  tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v7
-      - run: uv sync --group dev
-      - run: uv run pytest
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Instalar dependencias
+        run: uv sync --frozen
+      # Sin red ni otros servicios: los adaptadores se prueban con httpx.MockTransport.
+      - name: Tests
+        run: uv run pytest
 
-  publish:
-    needs: test
-    if: github.ref == 'refs/heads/main'
+  # Construye la imagen en cada PR y push, así un Dockerfile roto se ve antes de fusionar.
+  # Solo al fusionar en main la publica en ghcr con latest y el hash del commit (T11).
+  docker:
+    needs: tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      PUBLICAR: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v5
+      - name: Iniciar sesión en ghcr
+        if: env.PUBLICAR == 'true'
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@v6
+      - name: Construir la imagen y publicarla si es main
+        uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
+          push: ${{ env.PUBLICAR == 'true' }}
           tags: |
             ghcr.io/extractor-de-texto-pdf-grupo-06/pdf-extractext-web:latest
             ghcr.io/extractor-de-texto-pdf-grupo-06/pdf-extractext-web:${{ github.sha }}
