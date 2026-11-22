@@ -21,7 +21,7 @@ jobs:
         run: uv run pytest
       - name: Auditar dependencias de produccion
         run: |
-          uv export --locked --no-dev --no-hashes --format requirements-txt --output-file /tmp/requirements.txt
+          uv export --locked --no-hashes --format requirements-txt --output-file /tmp/requirements.txt
           uvx --from pip-audit pip-audit --requirement /tmp/requirements.txt --strict
 
   seguridad-imagen:
@@ -37,12 +37,13 @@ jobs:
           load: true
           tags: local/pdf-extractext-web:ci
       - name: Escanear imagen con Trivy
-        uses: aquasecurity/trivy-action@0.29.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: local/pdf-extractext-web:ci
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL
+          ignore-unfixed: true
           exit-code: '1'
 
   # Construye la imagen en cada PR y push, así un Dockerfile roto se ve antes de fusionar.

@@ -12,6 +12,10 @@ RUN uv sync --frozen --no-dev
 
 # Imagen final: solo el entorno virtual y el código, sin uv ni herramientas de construcción.
 FROM python:3.12-slim
+# Aplica actualizaciones de seguridad de Debian y evita conservar la caché de apt.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin app
 WORKDIR /app
 COPY --from=build /app/.venv /app/.venv
