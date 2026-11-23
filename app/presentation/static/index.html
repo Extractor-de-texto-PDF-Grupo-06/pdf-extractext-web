@@ -73,7 +73,13 @@
                             <strong>Checksum:</strong> <span id="res-checksum" class="mono"></span>
                         </div>
                         <div class="text-preview-container">
-                            <h4>Vista previa del texto</h4>
+                            <div class="text-preview-header">
+                                <h4>Vista previa del texto</h4>
+                                <button class="btn-copy" id="btn-copy-result" type="button" title="Copiar todo el texto">
+                                    <i class="ph ph-copy"></i>
+                                    Copiar texto
+                                </button>
+                            </div>
                             <div class="text-preview" id="res-text"></div>
                         </div>
                     </div>
@@ -137,7 +143,13 @@
                     <input type="text" id="modal-checksum" class="form-input" disabled>
                 </div>
                 <div class="form-group">
-                    <label>Texto Extraído</label>
+                    <div class="text-preview-header">
+                        <label for="modal-text">Texto Extraído</label>
+                        <button class="btn-copy" id="btn-copy-modal" type="button" title="Copiar todo el texto">
+                            <i class="ph ph-copy"></i>
+                            Copiar texto
+                        </button>
+                    </div>
                     <textarea id="modal-text" class="form-textarea"></textarea>
                 </div>
             </div>
