@@ -122,3 +122,15 @@ def test_la_interfaz_usa_la_api_de_web(client):
     assert "const API_URL = '/api';" in script
     assert "/api/v1" not in script
     assert "/extract" not in script
+
+
+def test_la_interfaz_permite_copiar_el_texto_extraido(client):
+    pagina = client.get("/").text
+    script = client.get("/app.js").text
+
+    # Un botón en el resultado de la subida y otro en el detalle del documento.
+    assert 'id="btn-copy-result"' in pagina
+    assert 'id="btn-copy-modal"' in pagina
+    # El portapapeles del navegador, con un respaldo para cuando no está disponible.
+    assert "navigator.clipboard.writeText" in script
+    assert "document.execCommand('copy')" in script

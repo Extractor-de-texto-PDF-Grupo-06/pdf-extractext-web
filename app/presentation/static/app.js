@@ -15,8 +15,12 @@ const modalChecksum = document.getElementById('modal-checksum');
 const modalText = document.getElementById('modal-text');
 const btnSaveDoc = document.getElementById('btn-save-doc');
 const btnDeleteDoc = document.getElementById('btn-delete-doc');
+const btnCopyResult = document.getElementById('btn-copy-result');
+const btnCopyModal = document.getElementById('btn-copy-modal');
 
 let currentDocId = null;
+// El texto extraído tal como llegó: la vista previa muestra otro mensaje si está vacío.
+let lastExtractedText = '';
 
 // Initialization
 document.addEventListener('DOMContentLoaded', () => {
@@ -141,6 +145,8 @@ function showUploadResult(data) {
     document.getElementById('res-filename').textContent = data.filename;
     document.getElementById('res-checksum').textContent = data.checksum;
     document.getElementById('res-text').textContent = data.text || 'Sin texto extraíble';
+    lastExtractedText = data.text || '';
+    btnCopyResult.disabled = lastExtractedText === '';
 }
 
 function resetUpload() {
@@ -148,6 +154,45 @@ function resetUpload() {
     dropZone.classList.remove('hidden');
     uploadProcessing.classList.add('hidden');
     uploadResult.classList.add('hidden');
+}
+
+// Copiar el texto
+btnCopyResult.addEventListener('click', () => copyText(lastExtractedText));
+// Copia lo que está en el editor, incluidos los cambios todavía sin guardar.
+btnCopyModal.addEventListener('click', () => copyText(modalText.value));
+
+async function copyText(text) {
+    if (!text) {
+        showToast('No hay texto para copiar.', 'error');
+        return;
+    }
+    try {
+        await writeToClipboard(text);
+        showToast('Texto copiado al portapapeles', 'success');
+    } catch (error) {
+        showToast('No se pudo copiar el texto.', 'error');
+    }
+}
+
+/**
+ * El portapapeles moderno solo existe en contextos seguros (https o localhost).
+ * Si se entra por la IP de la máquina no está, así que se usa el método anterior.
+ */
+async function writeToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    const helper = document.createElement('textarea');
+    helper.value = text;
+    helper.setAttribute('readonly', '');
+    helper.style.position = 'fixed';
+    helper.style.opacity = '0';
+    document.body.appendChild(helper);
+    helper.select();
+    const copied = document.execCommand('copy');
+    helper.remove();
+    if (!copied) throw new Error('execCommand falló');
 }
 
 // Documents CRUD
